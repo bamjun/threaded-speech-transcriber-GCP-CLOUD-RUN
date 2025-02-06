@@ -1,0 +1,11 @@
+# gcloud 배포 시 업로드하지 않을 파일들
+.gcloudignore
+.git
+.gitignore
+.venv
+README.md
+uv.lock
+pyproject.toml
+pyproject.toml.lock
+.python-version
+deploy.sh

@@ -1,0 +1,13 @@
+[project]
+name = "fastapi-upload-from-drive-to-gcs"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115.8",
+    "google-api-python-client>=2.160.0",
+    "google-auth>=2.38.0",
+    "google-cloud-storage>=3.0.0",
+    "uvicorn>=0.34.0",
+]
