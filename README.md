@@ -1,3 +1,32 @@
+# VIDEO to TRANCRIPT
+- google cloud
+  - cloud run
+  - cloud storage
+  - Speech-to-Text API
+  - google drive
+
+- python
+  - fast api
+
+- ffmpeg
+
+- docker
+
+---
+
+> google drive의 파일ID와 같이 요청이들어오면,
+> google drive의 파일ID의 해당 파일을 다운로드 후에
+> ffmpeg로 동영상을 음성파일 (flac)로 변환하고, 총길이 / 5분 으로 분할 한다.
+> 나눠진 파일을 cloud storage에 올린다.
+> 각 나눠진 파일을 쓰래딩하고, Speech-to-Text API를 통해서, 문자로 변환한다.
+> 작업이 완료돼면 나눠진 텍스트를 합치고 응답을 준다.
+
+
+
+
+---
+
+
 ### toml 에서 requirements.txt 추출할때
 uv export -o requirements.txt --no-hashes --no-dev
 
