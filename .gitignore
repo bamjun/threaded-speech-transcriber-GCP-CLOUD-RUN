@@ -10,3 +10,4 @@ wheels/
 .venv
 
 service-account.json
+.env
