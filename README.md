@@ -68,6 +68,16 @@ gcloud auth activate-service-account --key-file="/path/to/your/service-account.j
 
 
 
-### 매모리 증가하기
+## 매모리 증가하기
+```bash
 gcloud run services update fastapi-upload-from-drive-to-gcs \
   --memory=1Gi
+```
+
+
+## Identity Token 출력
+> 설정이 완료된 후 아래 명령어를 실행하면, 현재 인증된 계정의 Identity Token을 출력합니다.  
+
+```bash
+gcloud auth print-identity-token
+```
