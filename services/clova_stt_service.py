@@ -48,6 +48,16 @@ class ClovaSpeechClient:
         )
         return response
 
+def format_time(ms: int) -> str:
+    """
+    밀리초를 [HH:MM:SS] 형식으로 변환합니다.
+    """
+    total_seconds = ms // 1000
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return f"[{hours:02d}:{minutes:02d}:{seconds:02d}]"
+
 def process_drive_file_by_ncp_clova(file_id: str, bucket_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Google Drive에서 파일을 다운로드하고 Clova Speech API를 사용하여 화자 분리 음성 인식을 수행합니다.
@@ -82,6 +92,15 @@ def process_drive_file_by_ncp_clova(file_id: str, bucket_name: Optional[str] = N
         if response.status_code == 200:
             result = response.json()
             
+            # 음성 인식 결과를 시간순으로 포맷팅
+            transcription = ""
+            if 'segments' in result:
+                for segment in result['segments']:
+                    start_time = format_time(segment['start'])
+                    speaker_name = segment['speaker']['name']
+                    text = segment['text']
+                    transcription += f"{start_time} speaker {speaker_name} - {text}\n"
+            
             # 4. GCS에 결과 저장 (선택사항)
             if bucket_name:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -91,8 +110,14 @@ def process_drive_file_by_ncp_clova(file_id: str, bucket_name: Optional[str] = N
                 bucket = storage_client.bucket(bucket_name)
                 blob = bucket.blob(result_blob_name)
                 
+                # 원본 결과와 포맷팅된 텍스트를 모두 저장
+                save_result = {
+                    "original_result": result,
+                    "formatted_transcription": transcription
+                }
+                
                 blob.upload_from_string(
-                    json.dumps(result, ensure_ascii=False),
+                    json.dumps(save_result, ensure_ascii=False),
                     content_type='application/json'
                 )
                 
@@ -101,8 +126,10 @@ def process_drive_file_by_ncp_clova(file_id: str, bucket_name: Optional[str] = N
             return {
                 "status": "success",
                 "message": "음성 인식이 완료되었습니다.",
-                "result": result
+                "result": result,
+                "transcription": transcription
             }
+            
         else:
             error_msg = f"Clova API 요청 실패: {response.status_code} - {response.text}"
             print(error_msg)
@@ -120,25 +147,3 @@ def process_drive_file_by_ncp_clova(file_id: str, bucket_name: Optional[str] = N
                 os.remove(local_file_path)
             except Exception as e:
                 print(f"임시 파일 삭제 실패: {e}")
-
-def upload_to_temp_storage(file_path: str) -> str:
-    """
-    파일을 임시 스토리지에 업로드하고 URL을 반환합니다.
-    실제 구현에서는 적절한 스토리지 서비스를 사용해야 합니다.
-    """
-    # 예시: GCS에 업로드하고 signed URL 생성
-    storage_client = storage.Client()
-    bucket = storage_client.bucket("meet-temp-speech-to-text")
-    blob_name = f"temp/audio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
-    blob = bucket.blob(blob_name)
-    
-    blob.upload_from_filename(file_path)
-    
-    # signed URL 생성 (1시간 유효)
-    url = blob.generate_signed_url(
-        version="v4",
-        expiration=datetime.timedelta(hours=1),
-        method="GET"
-    )
-    
-    return url 

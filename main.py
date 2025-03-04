@@ -21,7 +21,8 @@ async def upload_from_drive_to_gcs(
     bucketName: str = Query(None, description="Cloud Storage 버킷 이름 (선택)")
 ):
     try:
-        result = process_drive_file(fileId, bucketName)
+        # result = process_drive_file(fileId, bucketName)
+        result = process_drive_file_by_ncp_clova(fileId, bucketName)
         return JSONResponse(content=result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
