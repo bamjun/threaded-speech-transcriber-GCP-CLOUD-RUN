@@ -1,13 +1,14 @@
 import io
 import os
 import tempfile
+from typing import Any
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
 
-def get_google_drive_service():
+def get_google_drive_service() -> Any:
     """Google Drive API 서비스 객체를 생성합니다."""
     try:
         # 서비스 계정 키 파일 경로

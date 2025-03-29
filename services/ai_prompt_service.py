@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from google import genai
+from google import genai  # type: ignore
 
 
 def call_ai_prompt(prompt_text: str, google_api_key: str) -> dict:
