@@ -1,15 +1,16 @@
-import os
-import tempfile
-import subprocess
-import time
-import shutil
 import concurrent.futures
+import os
+import shutil
+import subprocess
+import tempfile
+import time
 
 from google.auth.transport.requests import Request as GoogleRequest
 from googleapiclient.http import MediaIoBaseDownload
 
-from config.global_config import drive_service, storage_client, DEFAULT_BUCKET, creds
+from config.global_config import DEFAULT_BUCKET, creds, drive_service, storage_client
 from utils.transcribe import transcribe_segment
+
 
 def process_drive_file(fileId: str, bucketName: str = None):
     """
@@ -34,9 +35,11 @@ def process_drive_file(fileId: str, bucketName: str = None):
 
     try:
         # 1. Google Drive 파일 메타데이터 획득
-        meta_response = drive_service.files().get(
-            fileId=fileId, fields="id, name, mimeType"
-        ).execute()
+        meta_response = (
+            drive_service.files()
+            .get(fileId=fileId, fields="id, name, mimeType")
+            .execute()
+        )
         video_name = meta_response.get("name")
         if not video_name:
             raise Exception("파일 이름을 가져올 수 없습니다.")
@@ -59,7 +62,15 @@ def process_drive_file(fileId: str, bucketName: str = None):
         # 3. MP4 → MP3 변환
         full_mp3_path = tempfile.mktemp(suffix=".mp3")
         full_mp3_file_name = mp4_file_name.replace(".mp4", ".mp3")
-        cmd_full = ["ffmpeg", "-i", local_mp4_path, "-vn", "-acodec", "libmp3lame", full_mp3_path]
+        cmd_full = [
+            "ffmpeg",
+            "-i",
+            local_mp4_path,
+            "-vn",
+            "-acodec",
+            "libmp3lame",
+            full_mp3_path,
+        ]
         result_full = subprocess.run(cmd_full, capture_output=True, text=True)
         if result_full.returncode != 0:
             raise Exception(f"전체 FFmpeg 변환 오류: {result_full.stderr}")
@@ -67,11 +78,28 @@ def process_drive_file(fileId: str, bucketName: str = None):
         # 4. MP3 분할 및 FLAC 변환
         split_dir = tempfile.mkdtemp()
         split_pattern = os.path.join(split_dir, "segment_%03d.mp3")
-        split_cmd = ["ffmpeg", "-i", full_mp3_path, "-f", "segment", "-segment_time", "300", "-c", "copy", split_pattern]
+        split_cmd = [
+            "ffmpeg",
+            "-i",
+            full_mp3_path,
+            "-f",
+            "segment",
+            "-segment_time",
+            "300",
+            "-c",
+            "copy",
+            split_pattern,
+        ]
         result_split = subprocess.run(split_cmd, capture_output=True, text=True)
         if result_split.returncode != 0:
             raise Exception(f"FFmpeg 분할 오류: {result_split.stderr}")
-        segments = sorted([os.path.join(split_dir, f) for f in os.listdir(split_dir) if f.endswith(".mp3")])
+        segments = sorted(
+            [
+                os.path.join(split_dir, f)
+                for f in os.listdir(split_dir)
+                if f.endswith(".mp3")
+            ]
+        )
 
         flac_segments = []
         for seg in segments:
@@ -95,7 +123,9 @@ def process_drive_file(fileId: str, bucketName: str = None):
                 blob_seg.upload_from_filename(seg_path)
                 uploaded_files.append(seg_file_name)
                 seg_gs_uri = f"gs://{target_bucket}/{seg_file_name}"
-                future = executor.submit(transcribe_segment, seg_file_name, seg_gs_uri, token, i, 10, 1000)
+                future = executor.submit(
+                    transcribe_segment, seg_file_name, seg_gs_uri, token, i, 10, 1000
+                )
                 future_to_index[future] = i
 
             for future in concurrent.futures.as_completed(future_to_index):
@@ -107,7 +137,9 @@ def process_drive_file(fileId: str, bucketName: str = None):
                     raise Exception(f"세그먼트 {i} 작업 중 오류 발생: {exc}")
 
         # 6. 전사 결과 결합 및 반환
-        combined_transcription = "\n".join([t[1] for t in sorted(transcriptions, key=lambda x: x[0])])
+        combined_transcription = "\n".join(
+            [t[1] for t in sorted(transcriptions, key=lambda x: x[0])]
+        )
         not_finished_segments = [i for i, _ in transcriptions if i is None]
         taken_time = time.time() - start_time
 
@@ -116,7 +148,7 @@ def process_drive_file(fileId: str, bucketName: str = None):
             "mp4FileName": blob_mp4_name,
             "fullMp3GsUri": f"gs://{target_bucket}/{full_mp3_file_name}",
             "transcription": combined_transcription,
-            "not-finished-segments": not_finished_segments
+            "not-finished-segments": not_finished_segments,
         }
         return result
 
@@ -133,4 +165,4 @@ def process_drive_file(fileId: str, bucketName: str = None):
         if full_mp3_path and os.path.exists(full_mp3_path):
             os.remove(full_mp3_path)
         if split_dir and os.path.exists(split_dir):
-            shutil.rmtree(split_dir) 
+            shutil.rmtree(split_dir)

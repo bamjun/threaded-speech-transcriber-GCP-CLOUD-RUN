@@ -12,7 +12,9 @@ dependencies = [
     "google-auth-oauthlib>=1.2.1",
     "google-cloud-storage>=3.0.0",
     "google-genai>=1.0.0",
+    "google-generativeai>=0.8.4",
     "python-dotenv>=1.0.1",
+    "types-requests>=2.32.0.20250328",
     "uvicorn>=0.34.0",
 ]
 
@@ -20,6 +22,7 @@ dependencies = [
 dev = [
     "mypy>=1.15.0",
     "ruff>=0.11.2",
+    "types-requests>=2.32.0.20250328",
 ]
 
 
@@ -43,3 +46,5 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_return_any = true
 strict_optional = true
+explicit_package_bases = true
+namespace_packages = true
