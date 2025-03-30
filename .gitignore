@@ -11,3 +11,8 @@ wheels/
 
 service-account.json
 .env
+
+.mypy_cache
+.pytest_cache
+.vscode
+.ruff_cache
